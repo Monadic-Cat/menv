@@ -1,10 +1,11 @@
 [package]
 name = "menv"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 authors = ["Monadic Cat <greenmonadcat@gmail.com>"]
 description = "Pulling in arguments from environment variables"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Monadic-Cat/menv"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
