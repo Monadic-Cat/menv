@@ -6,7 +6,7 @@
 /// - A function which asserts the presence and well-formedness of a list of env vars
 /// - A function which returns a `bool` representing whether any of the required vars are set
 /// - A function which returns a `String` representing the collected help messages for the list of vars
-/// - A list of functions, one for each environment variable required
+/// - A list of functions, one for each environment variable required, which parse and return the associated env var
 ///
 /// # Example
 /// Here we fill an `env` module with required environment variables,
