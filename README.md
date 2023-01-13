@@ -14,7 +14,7 @@ print help and exit if none of them are set, runs the asserts for them
 if some are set, and proceeds.
 Other parts of this program are now free, since the asserts were run at the start of main,
 to access `env::server_port()` and `env::db_path()` as if they are infallible.
-```
+```rust
 mod env {
     use menv::require_envs;
     require_envs! {
