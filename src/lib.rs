@@ -69,21 +69,30 @@ macro_rules! require_envs {
     (@etext $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
         $etext
     };
-    (($assert_name:ident, $any_set_name:ident, $help_name:ident); $($a:tt $b:tt $c:tt $d:tt $e:tt $f:tt $g:tt $($h:literal)?);* $(;)?) => {
+    (($assert_name:ident, $any_set_name:ident, $help_name:ident); $($stream:tt)*) => {
+        // Note: While I now use a proc macro for dividing the input stream into declarations,
+        // the below comments still accurately describe what that proc macro generates invocations of.
         pub fn $assert_name () {
-            $(
-                $crate::require_envs! {@assert $a $b $c $d $e $f $g $($h)?}
-            )*
+            $crate::__private::assert_var_body! {$crate $($stream)*}
+            // $(
+            //     $crate::require_envs! {@assert $a $b $c $d $e $f $g $($h)?}
+            // )*
         }
         pub fn $any_set_name() -> bool {
-            [$($crate::require_envs! {@get_res $a $b $c $d $e $f $g $($h)?}),*].iter().any(|x| x.is_ok())
+            $crate::__private::any_set_body! {$crate $($stream)*}.iter().any(|x| x.is_ok())
+            // [$($crate::require_envs! {@get_res $a $b $c $d $e $f $g $($h)?}),*].iter().any(|x| x.is_ok())
         }
         pub fn $help_name() -> $crate::__private::String {
-            $crate::__private::String::new() $(+ $crate::require_envs! {@etext $a $b $c $d $e $f $g $($h)?} + "\n")*
+            $crate::__private::help_body!{$crate $($stream)*}.iter().fold($crate::__private::String::new(), |a, x| {
+                a + x + "\n"
+            })
+            // $crate::__private::String::new() $(+ $crate::require_envs! {@etext $a $b $c $d $e $f $g $($h)?} + "\n")*
         }
-        $(
-            $crate::require_envs! {@func $a $b $c $d $e $f $g $($h)?}
-        )*
+        $crate::__private::getters! {$crate $($stream)*}
+        // $(
+        //     $crate::require_envs! {@func $a $b $c $d $e $f $g $($h)?}
+        // )*
+        $crate::__private::errors! {$crate $($stream)*}
     }
 }
 
@@ -91,8 +100,9 @@ macro_rules! require_envs {
 /// to ensure it always refers to the right external items.
 #[doc(hidden)]
 pub mod __private {
-    pub use ::std::option::Option;
+    pub use ::menv_proc_macro::{any_set_body, assert_var_body, errors, getters, help_body};
     pub use ::std::env;
+    pub use ::std::option::Option;
     pub use ::std::str::FromStr;
     pub use ::std::string::String;
 }
