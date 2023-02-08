@@ -45,8 +45,12 @@
 /// ```
 #[macro_export]
 macro_rules! require_envs {
+    // We set a default visibility which is different from Rust's default to private.
     (@func $fname:ident ?, $ename:literal, $ty:ty, $etext:literal) => {
-        pub fn $fname() -> $crate::__private::Option<$ty> {
+        $crate::require_envs! {@func pub $fname ?, $ename, $ty, $etext}
+    };
+    (@func $vis:vis $fname:ident ?, $ename:literal, $ty:ty, $etext:literal) => {
+        $vis fn $fname() -> $crate::__private::Option<$ty> {
             let x = $crate::__private::env::var($ename).ok();
             x.and_then(|x| {
                 $crate::__private::Option::Some($crate::__private::FromStr::from_str(&x).expect($etext))
@@ -54,19 +58,22 @@ macro_rules! require_envs {
         }
     };
     (@func $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
-        pub fn $fname() -> $ty {
+        $crate::require_envs! {@func pub $fname, $ename, $ty, $etext}
+    };
+    (@func $vis:vis $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
+        $vis fn $fname() -> $ty {
             $crate::__private::FromStr::from_str(&$crate::__private::env::var($ename).expect($etext)).expect($etext)
         }
     };
     // We do not assert the existence of optional variables.
-    (@assert $fname:ident ?, $ename:literal, $ty:ty, $etext:literal) => {};
-    (@assert $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
+    (@assert $vis:vis $fname:ident ?, $ename:literal, $ty:ty, $etext:literal) => {};
+    (@assert $vis:vis $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
         let _ = $fname();
     };
-    (@get_res $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
+    (@get_res $vis:vis $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
         $crate::__private::env::var($ename)
     };
-    (@etext $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
+    (@etext $vis:vis $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
         $etext
     };
     (($assert_name:ident, $any_set_name:ident, $help_name:ident); $($stream:tt)*) => {
