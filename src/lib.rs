@@ -2,6 +2,8 @@
 //! This crate provides [a macro](require_envs) for asserting the presence of a list of environment
 //! variables and accessing them as types which implement [`FromStr`](std::str::FromStr).
 
+use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
 /// Generate the following:
 /// - A function which asserts the presence and well-formedness of a list of env vars
 /// - A function which returns a `bool` representing whether any of the required vars are set
@@ -18,6 +20,9 @@
 ///
 /// The getter function name can be suffixed with `?` to make an env var optional. In this example,
 /// `plugin_dir`'s return type is `Option<String>`.
+///
+/// The getter function name can also, instead, be suffixed with `~` to make an env var use
+/// the [`Default`] value of its type when unset. In this example, [`Flag`]'s default value is `false`.
 /// ```
 /// mod env {
 ///     use menv::require_envs;
@@ -32,6 +37,9 @@
 ///
 ///         plugin_dir?, "XLANG_PLUGIN_DIR", String,
 ///         "XLANG_PLUGIN_DIR, if set, overrides the directory that lccc looks for xlang plugins";
+///
+///         do_overflow_checks~, "DO_OVERFLOW_CHECKS", Flag,
+///         "DO_OVERFLOW_CHECKS, if set, makes all additional overflow checks run";
 ///     }
 /// }
 /// fn main() {
@@ -57,6 +65,18 @@ macro_rules! require_envs {
             })
         }
     };
+    (@func $fname:ident ~, $ename:literal, $ty:ty, $etext:literal) => {
+        $crate::require_envs! {@func pub $fname ~, $ename, $ty, $etext}
+    };
+    (@func $vis:vis $fname:ident ~, $ename:literal, $ty:ty, $etext:literal) => {
+        $vis fn $fname() -> $ty {
+            let x = $crate::__private::env::var($ename).ok();
+            let x = x.and_then(|x| {
+                $crate::__private::Option::Some($crate::__private::FromStr::from_str(&x).expect($etext))
+            });
+            x.unwrap_or_default()
+        }
+    };
     (@func $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
         $crate::require_envs! {@func pub $fname, $ename, $ty, $etext}
     };
@@ -67,13 +87,14 @@ macro_rules! require_envs {
     };
     // We do not assert the existence of optional variables.
     (@assert $vis:vis $fname:ident ?, $ename:literal, $ty:ty, $etext:literal) => {};
+    (@assert $vis:vis $fname:ident ~, $ename:literal, $ty:ty, $etext:literal) => {};
     (@assert $vis:vis $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
         let _ = $fname();
     };
-    (@get_res $vis:vis $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
+    (@get_res $vis:vis $fname:ident $(?)? $(~)?, $ename:literal, $ty:ty, $etext:literal) => {
         $crate::__private::env::var($ename)
     };
-    (@etext $vis:vis $fname:ident $(?)?, $ename:literal, $ty:ty, $etext:literal) => {
+    (@etext $vis:vis $fname:ident $(?)? $(~)?, $ename:literal, $ty:ty, $etext:literal) => {
         $etext
     };
     (($assert_name:ident, $any_set_name:ident, $help_name:ident); $($stream:tt)*) => {
@@ -100,6 +121,33 @@ macro_rules! require_envs {
         //     $crate::require_envs! {@func $a $b $c $d $e $f $g $($h)?}
         // )*
         $crate::__private::errors! {$crate $($stream)*}
+    }
+}
+
+/// Use this type instead of a [`bool`] if you want a var to
+/// evaluate to true if set to any value at all.
+///
+/// This is best used with the `~` getter modifier,
+/// which causes an unset var to use its type's [`Default`] implementation.
+#[derive(Default, Copy, Clone, Hash, Debug)]
+pub struct Flag {
+    pub val: bool,
+}
+impl FromStr for Flag {
+    type Err = ::core::convert::Infallible;
+    fn from_str(_: &str) -> Result<Self, Self::Err> {
+        Ok(Self { val: true })
+    }
+}
+impl Deref for Flag {
+    type Target = bool;
+    fn deref(&self) -> &Self::Target {
+        &self.val
+    }
+}
+impl DerefMut for Flag {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.val
     }
 }
 
