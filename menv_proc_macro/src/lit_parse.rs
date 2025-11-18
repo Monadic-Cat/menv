@@ -221,16 +221,12 @@ fn parse_raw_str_literal(input: &str) -> String {
     let input = &input[1..];
     let mut text = String::new();
     let mut cursor = input;
-    let mut hash_prefix_count = 0u8;
+    let mut hash_prefix_count = 0usize;
     loop {
         match cursor.as_bytes() {
             [b'#', ..] => {
                 cursor = &cursor[1..];
-                // Currently, the reference says this can't fail,
-                // but a change in this behavior would feel like removing
-                // a limitation to the rustc devs, and so I think it could
-                // someday.
-                hash_prefix_count += hash_prefix_count.checked_add(1).unwrap();
+                hash_prefix_count += 1;
             }
             [b'"', ..] => {
                 cursor = &cursor[1..];
