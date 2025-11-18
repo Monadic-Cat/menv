@@ -176,7 +176,7 @@ pub fn trimmed_help(input: TokenStream) -> TokenStream {
             break 'parse;
         };
 
-        let mut new_lit = Literal::string(&format!("\"{}\"", lit_data.trim()));
+        let mut new_lit = Literal::string(lit_data.trim());
         new_lit.set_span(lit.span());
         output.push(TokenStream::from(TokenTree::Literal(new_lit)))
     }
