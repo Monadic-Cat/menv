@@ -1,7 +1,9 @@
 // assert_var_body, any_set_body, help_body, getters
 
-use proc_macro::{Delimiter, Group, Ident, Punct, Spacing, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::str::FromStr;
+
+mod lit_parse;
 
 // struct VarDecl {
 //     getter_name: Ident,
@@ -124,4 +126,61 @@ pub fn getters(input: TokenStream) -> TokenStream {
 pub fn errors(input: TokenStream) -> TokenStream {
     let stream = Stream::parse(input);
     stream.errors.into_iter().collect()
+}
+
+fn compile_error(text: &str, span: Span) -> TokenStream {
+    let toks = TokenStream::from_str(&format!("\"{text}\"")).unwrap();
+    let toks = toks
+        .into_iter()
+        .map(|mut tok| {
+            tok.set_span(span);
+            tok
+        })
+        .collect();
+    toks
+}
+
+#[proc_macro]
+pub fn trimmed_help(input: TokenStream) -> TokenStream {
+    // let dbg = format!("{input:?}");
+    let mut input = input.into_iter();
+    // `require_envs!` always deals with making sure this receives
+    // a literal token (with some number of invisible groups wrapping it),
+    // but we need to handle user input failures beyond that,
+    // of which there is exactly one:
+    // - passing something other than a string literal
+    let mut walk = input.next().unwrap();
+    while let TokenTree::Group(group) = walk {
+        walk = group.stream().into_iter().next().unwrap();
+    }
+    let TokenTree::Literal(lit) = walk else {
+        // eprintln!("{dbg}");
+        unreachable!("internals failed to only pass help text")
+    };
+    let mut errors = Vec::<TokenStream>::new();
+    let mut output = Vec::new();
+
+    'parse: {
+        let lit = match lit_parse::Literal::parse(&lit) {
+            Ok(x) => x,
+            Err(e) => {
+                errors.extend(e);
+                break 'parse;
+            }
+        };
+        let lit_parse::LiteralData::String(lit_data) = lit.data() else {
+            errors.push(compile_error(
+                "attempted to pass a non-string literal as help text",
+                lit.span(),
+            ));
+            break 'parse;
+        };
+
+        let mut new_lit = Literal::string(&format!("\"{}\"", lit_data.trim()));
+        new_lit.set_span(lit.span());
+        output.push(TokenStream::from(TokenTree::Literal(new_lit)))
+    }
+
+    output.extend(errors);
+    output.into_iter().collect()
 }

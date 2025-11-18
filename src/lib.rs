@@ -58,6 +58,7 @@ macro_rules! require_envs {
         $crate::require_envs! {@func pub $fname ?, $ename, $ty, $etext}
     };
     (@func $vis:vis $fname:ident ?, $ename:literal, $ty:ty, $etext:literal) => {
+        #[doc = $crate::__private::trimmed_help!($etext)]
         $vis fn $fname() -> $crate::__private::Option<$ty> {
             let x = $crate::__private::env::var($ename).ok();
             x.and_then(|x| {
@@ -69,6 +70,7 @@ macro_rules! require_envs {
         $crate::require_envs! {@func pub $fname ~, $ename, $ty, $etext}
     };
     (@func $vis:vis $fname:ident ~, $ename:literal, $ty:ty, $etext:literal) => {
+        #[doc = $crate::__private::trimmed_help!($etext)]
         $vis fn $fname() -> $ty {
             let x = $crate::__private::env::var($ename).ok();
             let x = x.and_then(|x| {
@@ -81,6 +83,7 @@ macro_rules! require_envs {
         $crate::require_envs! {@func pub $fname, $ename, $ty, $etext}
     };
     (@func $vis:vis $fname:ident, $ename:literal, $ty:ty, $etext:literal) => {
+        #[doc = $crate::__private::trimmed_help!($etext)]
         $vis fn $fname() -> $ty {
             $crate::__private::FromStr::from_str(&$crate::__private::env::var($ename).expect($etext)).expect($etext)
         }
@@ -155,7 +158,7 @@ impl DerefMut for Flag {
 /// to ensure it always refers to the right external items.
 #[doc(hidden)]
 pub mod __private {
-    pub use ::menv_proc_macro::{any_set_body, assert_var_body, errors, getters, help_body};
+    pub use ::menv_proc_macro::{any_set_body, assert_var_body, errors, getters, help_body, trimmed_help};
     pub use ::std::env;
     pub use ::std::option::Option;
     pub use ::std::str::FromStr;
