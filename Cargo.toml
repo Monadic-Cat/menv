@@ -1,8 +1,8 @@
 [package]
 name = "menv"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
-authors = ["Monadic Cat <greenmonadcat@gmail.com>"]
+authors = ["Monadic Cat <monad@catmonad.xyz>"]
 description = "Pulling in arguments from environment variables"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Monadic-Cat/menv"
@@ -10,7 +10,7 @@ repository = "https://github.com/Monadic-Cat/menv"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-menv_proc_macro = { version = "0.1.0", path = "./menv_proc_macro" }
+menv_proc_macro = { version = "0.1.1", path = "./menv_proc_macro" }
 
 [workspace]
 members = ["menv_proc_macro"]
